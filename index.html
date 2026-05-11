@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Scoreboard Pro - Búfalo Club</title>
+    <style>
+        :root {
+            --bg-blue: #1a56db;
+            --line-color: rgba(255, 255, 255, 0.2);
+            --ball-yellow: #dfff00;
+            --logo-green: #0c9c61;
+            --set-yellow: #f1c40f;
+            --gold: #ffd700;
+        }
+
+        body {
+            background-color: #000;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            font-family: 'Arial Black', sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+
+        .scoreboard {
+            background-color: var(--bg-blue);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 2vh 5vw;
+            border: 10px solid #333;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.8vw;
+            font-family: monospace;
+            opacity: 0.9;
+        }
+
+        .cancha-label {
+            background: #ffcc00;
+            color: black;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-weight: 900;
+            font-size: 1.5vw;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 4px solid white;
+            padding-bottom: 5px;
+        }
+
+        .club-logo {
+            width: 4.5vw; height: 4.5vw;
+            background-color: var(--logo-green);
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            font-size: 0.7vw;
+            text-align: center;
+            color: black;
+        }
+
+        .team-row {
+            display: grid;
+            grid-template-columns: 0.5fr 2.5fr 1fr 1fr 1.5fr 0.5fr;
+            align-items: center;
+            height: 28vh;
+        }
+
+        .ball-slot { display: flex; justify-content: center; }
+        .ball {
+            width: 3vw; height: 3vw;
+            background-color: var(--ball-yellow);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--ball-yellow);
+            cursor: pointer;
+            visibility: hidden;
+        }
+        .ball.active { visibility: visible; }
+
+        .player-names { font-size: 4vw; text-transform: uppercase; outline: none; display: flex; align-items: center; }
+        
+        /* Corona del Campeón */
+        .winner-crown {
+            display: none;
+            font-size: 4vw;
+            margin-left: 15px;
+            filter: drop-shadow(0 0 10px gold);
+        }
+
+        .sets-count { font-size: 8vw; text-align: center; color: var(--set-yellow); border-right: 2px solid var(--line-color); }
+        .games-count { font-size: 12vw; text-align: center; }
+        
+        .point-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
+        .current-point {
+            font-size: 8vw;
+            background: rgba(0, 0, 0, 0.4);
+            text-align: center;
+            border-radius: 20px;
+            cursor: pointer;
+            min-width: 14vw;
+            padding: 5px;
+            transition: all 0.3s;
+        }
+
+        .gold-point {
+            color: var(--gold) !important;
+            box-shadow: 0 0 20px var(--gold);
+            border: 2px solid var(--gold);
+        }
+
+        hr { border: 0; border-top: 4px solid var(--line-color); width: 100%; }
+
+        .controls { background: #111; padding: 12px; display: flex; justify-content: center; gap: 12px; }
+        button, select {
+            padding: 10px 18px; font-size: 0.9rem; cursor: pointer; border-radius: 5px; border: none;
+            background: #444; color: white; font-weight: bold; text-transform: uppercase;
+        }
+
+        button:disabled { opacity: 0.2; cursor: not-allowed; }
+
+        .btn-coin { background: #f39c12; }
+        .btn-reset { background: #c0392b; }
+
+        #overlay {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95); padding: 50px; border-radius: 20px;
+            display: none; text-align: center; z-index: 100; border: 5px solid gold;
+            min-width: 50vw;
+        }
+
+        .btn-overlay-start {
+            margin-top: 30px; background: #27ae60; padding: 20px 40px; font-size: 2rem;
+            color: white; border: none; border-radius: 10px; cursor: pointer;
+            font-family: 'Arial Black', sans-serif; display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <h2 id="overlay-text" style="font-size: 3.5rem; color: gold; margin-bottom: 10px; white-space: pre-line;"></h2>
+        <button id="btn-overlay-start" class="btn-overlay-start" onclick="closeOverlayAndStart()">INICIAR PARTIDO</button>
+    </div>
+
+    <div class="scoreboard">
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="cancha-label" contenteditable="true">CANCHA 3</div>
+                <span id="match-time">00:00:00</span>
+            </div>
+            <div class="logo-container">
+                <span>PADEL SCORE</span>
+                <div class="club-logo">BÚFALO<br>CLUB</div>
+            </div>
+            <span id="current-clock">--:--</span>
+        </div>
+
+        <div class="team-row" id="row-t1">
+            <div class="ball-slot"><div class="ball" id="ball-t1" onclick="setServer('t1')"></div></div>
+            <div class="player-names" contenteditable="true">
+                <span id="name-t1">EQUIPO 1</span>
+                <span class="winner-crown" id="crown-t1">👑</span>
+            </div>
+            <div class="sets-count" id="sets-t1">0</div>
+            <div class="games-count" id="games-t1">0</div>
+            <div class="point-container">
+                <div class="current-point" id="pt-t1" onclick="addPoint('t1')">00</div>
+                <div class="stepper-btns">
+                    <button style="display:block; margin-bottom:5px;" onclick="addPoint('t1')">▲</button>
+                    <button style="display:block;" onclick="removePoint('t1')">▼</button>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="team-row" id="row-t2">
+            <div class="ball-slot"><div class="ball" id="ball-t2" onclick="setServer('t2')"></div></div>
+            <div class="player-names" contenteditable="true">
+                <span id="name-t2">EQUIPO 2</span>
+                <span class="winner-crown" id="crown-t2">👑</span>
+            </div>
+            <div class="sets-count" id="sets-t2">0</div>
+            <div class="games-count" id="games-t2">0</div>
+            <div class="point-container">
+                <div class="current-point" id="pt-t2" onclick="addPoint('t2')">00</div>
+                <div class="stepper-btns">
+                    <button style="display:block; margin-bottom:5px;" onclick="addPoint('t2')">▲</button>
+                    <button style="display:block;" onclick="removePoint('t2')">▼</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <select id="set-mode" onchange="checkValidation()">
+            <option value="" disabled selected>ELEGIR SETS</option>
+            <option value="2">Gana 2 Sets</option>
+            <option value="3">Gana 3 Sets</option>
+        </select>
+        <select id="point-mode" onchange="checkValidation()">
+            <option value="" disabled selected>ELEGIR PUNTO</option>
+            <option value="oro">PUNTO DE ORO</option>
+            <option value="ventaja">MODO VENTAJA</option>
+        </select>
+        <button id="btn-coin" class="btn-coin" onclick="tossCoin()" disabled>Sorteo Saque</button>
+        <button id="btn-start" onclick="startTimer()" style="background: #27ae60;" disabled>Iniciar</button>
+        <button onclick="pauseTimer()">Pausar</button>
+        <button class="btn-reset" onclick="resetAll()">Reset</button>
+        <button onclick="document.documentElement.requestFullscreen()" style="background: #2980b9;">F11</button>
+    </div>
+
+    <script>
+        let seconds = 0;
+        let timerInterval = null;
+        let gameFinished = false;
+        let points = { t1: 0, t2: 0 }; 
+        let games = { t1: 0, t2: 0 };
+        let sets = { t1: 0, t2: 0 };
+        const ptsMap = ["00", "15", "30", "40", "AV"];
+
+        function checkValidation() {
+            const setVal = document.getElementById('set-mode').value;
+            const pointVal = document.getElementById('point-mode').value;
+            const btnCoin = document.getElementById('btn-coin');
+            const btnStart = document.getElementById('btn-start');
+            if (setVal && pointVal) {
+                btnCoin.disabled = false;
+                btnStart.disabled = false;
+            } else {
+                btnCoin.disabled = true;
+                btnStart.disabled = true;
+            }
+        }
+
+        function addPoint(team) {
+            if (gameFinished) return;
+            const opponent = team === 't1' ? 't2' : 't1';
+            const isPuntoOro = document.getElementById('point-mode').value === 'oro';
+
+            if (points[team] < 3) {
+                points[team]++;
+            } else if (points[team] === 3) {
+                if (points[opponent] < 3) { updateGames(team); return; }
+                else if (points[opponent] === 3) {
+                    if (isPuntoOro) { updateGames(team); return; }
+                    else { points[team] = 4; }
+                } else if (points[opponent] === 4) {
+                    points[opponent] = 3;
+                }
+            } else if (points[team] === 4) {
+                updateGames(team); return;
+            }
+            renderAll();
+        }
+
+        function removePoint(team) {
+            if (gameFinished) return;
+            if (points[team] > 0) { points[team]--; renderAll(); }
+        }
+
+        function updateGames(team) {
+            games[team]++;
+            points.t1 = 0; points.t2 = 0;
+            if (games[team] >= 6) {
+                updateSets(team);
+            } else {
+                toggleServer();
+            }
+            renderAll();
+        }
+
+        function updateSets(team) {
+            sets[team]++;
+            games.t1 = 0; games.t2 = 0;
+            const target = parseInt(document.getElementById('set-mode').value);
+            
+            if (sets[team] >= target) {
+                gameFinished = true;
+                pauseTimer();
+                renderAll();
+                document.getElementById('crown-' + team).style.display = 'inline-block';
+                const winnerName = document.getElementById('name-' + team).innerText;
+                showOverlay("¡FIN DEL JUEGO!\nGANADOR: " + winnerName, false, false);
+            } else {
+                const teamName = document.getElementById('name-' + team).innerText;
+                showOverlay("SET PARA " + teamName, true, false);
+                toggleServer();
+            }
+        }
+
+        function renderAll() {
+            const pt1 = document.getElementById('pt-t1');
+            const pt2 = document.getElementById('pt-t2');
+            const isPuntoOro = document.getElementById('point-mode').value === 'oro';
+            pt1.innerText = ptsMap[points.t1];
+            pt2.innerText = ptsMap[points.t2];
+            if (isPuntoOro && points.t1 === 3 && points.t2 === 3) {
+                pt1.classList.add('gold-point'); pt2.classList.add('gold-point');
+                pt1.innerText = "ORO"; pt2.innerText = "ORO";
+            } else {
+                pt1.classList.remove('gold-point'); pt2.classList.remove('gold-point');
+            }
+            document.getElementById('games-t1').innerText = games.t1;
+            document.getElementById('games-t2').innerText = games.t2;
+            document.getElementById('sets-t1').innerText = sets.t1;
+            document.getElementById('sets-t2').innerText = sets.t2;
+        }
+
+        function setServer(team) {
+            if (gameFinished) return;
+            document.getElementById('ball-t1').classList.remove('active');
+            document.getElementById('ball-t2').classList.remove('active');
+            document.getElementById('ball-' + team).classList.add('active');
+        }
+
+        function toggleServer() {
+            const b1 = document.getElementById('ball-t1');
+            const b2 = document.getElementById('ball-t2');
+            if(b1.classList.contains('active')) setServer('t2');
+            else if(b2.classList.contains('active')) setServer('t1');
+        }
+
+        function showOverlay(text, autoClose = true, showStartBtn = false) {
+            const overlay = document.getElementById('overlay');
+            const btn = document.getElementById('btn-overlay-start');
+            document.getElementById('overlay-text').innerText = text;
+            overlay.style.display = 'block';
+            btn.style.display = showStartBtn ? 'inline-block' : 'none';
+            if (autoClose) setTimeout(() => overlay.style.display = 'none', 3000);
+            if (gameFinished) overlay.onclick = () => overlay.style.display = 'none';
+        }
+
+        function closeOverlayAndStart() {
+            document.getElementById('overlay').style.display = 'none';
+            startTimer();
+        }
+
+        function tossCoin() {
+            if (gameFinished) return;
+            showOverlay("SORTEANDO...", false, false);
+            setTimeout(() => {
+                const win = Math.random() > 0.5 ? 't1' : 't2';
+                const name = document.getElementById('name-' + win).innerText;
+                showOverlay("SACA: " + name, false, true);
+                setServer(win);
+            }, 1500);
+        }
+
+        function startTimer() {
+            if (timerInterval || gameFinished) return;
+            timerInterval = setInterval(() => {
+                seconds++;
+                let hrs = Math.floor(seconds / 3600).toString().padStart(2,'0');
+                let mins = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
+                let secs = (seconds % 60).toString().padStart(2,'0');
+                document.getElementById('match-time').innerText = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function pauseTimer() { clearInterval(timerInterval); timerInterval = null; }
+
+        function resetAll() {
+            if(!confirm("¿Resetear partido completo?")) return;
+            pauseTimer();
+            gameFinished = false;
+            seconds = 0;
+            points = { t1: 0, t2: 0 }; games = { t1: 0, t2: 0 }; sets = { t1: 0, t2: 0 };
+            document.getElementById('set-mode').selectedIndex = 0;
+            document.getElementById('point-mode').selectedIndex = 0;
+            checkValidation();
+            document.getElementById('match-time').innerText = "00:00:00";
+            document.getElementById('ball-t1').classList.remove('active');
+            document.getElementById('ball-t2').classList.remove('active');
+            document.getElementById('crown-t1').style.display = 'none';
+            document.getElementById('crown-t2').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            renderAll();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('current-clock').innerText = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0') + " h";
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
