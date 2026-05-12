@@ -19,11 +19,13 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
             width: 100vw;
             font-family: 'Arial Black', sans-serif;
             color: white;
-            overflow: hidden;
+            /* Cambiado para permitir scroll si el contenido desborda en móviles */
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .scoreboard {
@@ -34,15 +36,19 @@
             justify-content: space-around;
             padding: 2vh 5vw;
             border: 10px solid #333;
+            box-sizing: border-box;
+            min-height: 85vh; /* Asegura que ocupe casi toda la pantalla */
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.8vw;
+            font-size: clamp(1rem, 1.8vw, 2.5rem);
             font-family: monospace;
             opacity: 0.9;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .cancha-label {
@@ -51,7 +57,7 @@
             padding: 5px 15px;
             border-radius: 5px;
             font-weight: 900;
-            font-size: 1.5vw;
+            font-size: clamp(0.8rem, 1.5vw, 1.5rem);
         }
 
         .logo-container {
@@ -63,7 +69,8 @@
         }
 
         .club-logo {
-            width: 4.5vw; height: 4.5vw;
+            width: clamp(40px, 4.5vw, 80px); 
+            height: clamp(40px, 4.5vw, 80px);
             background-color: var(--logo-green);
             border-radius: 50%;
             border: 2px solid white;
@@ -71,21 +78,24 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            font-size: 0.7vw;
+            font-size: clamp(8px, 0.7vw, 12px);
             text-align: center;
             color: black;
         }
 
         .team-row {
             display: grid;
-            grid-template-columns: 0.5fr 2.5fr 1fr 1fr 1.5fr 0.5fr;
+            /* Ajustado para que en pantallas pequeñas los nombres tengan más espacio */
+            grid-template-columns: 0.4fr 2.5fr 0.8fr 0.8fr 1.2fr 0.4fr;
             align-items: center;
-            height: 28vh;
+            min-height: 25vh;
+            gap: 10px;
         }
 
         .ball-slot { display: flex; justify-content: center; }
         .ball {
-            width: 3vw; height: 3vw;
+            width: clamp(20px, 3vw, 40px); 
+            height: clamp(20px, 3vw, 40px);
             background-color: var(--ball-yellow);
             border-radius: 50%;
             box-shadow: 0 0 20px var(--ball-yellow);
@@ -94,30 +104,47 @@
         }
         .ball.active { visibility: visible; }
 
-        .player-names { font-size: 4vw; text-transform: uppercase; outline: none; display: flex; align-items: center; }
+        .player-names { 
+            font-size: clamp(1.2rem, 4vw, 4.5rem); 
+            text-transform: uppercase; 
+            outline: none; 
+            display: flex; 
+            align-items: center;
+            overflow: hidden;
+        }
         
-        /* Corona del Campeón */
         .winner-crown {
             display: none;
-            font-size: 4vw;
-            margin-left: 15px;
+            font-size: clamp(1.5rem, 4vw, 4.5rem);
+            margin-left: 10px;
             filter: drop-shadow(0 0 10px gold);
         }
 
-        .sets-count { font-size: 8vw; text-align: center; color: var(--set-yellow); border-right: 2px solid var(--line-color); }
-        .games-count { font-size: 12vw; text-align: center; }
+        .sets-count { 
+            font-size: clamp(2.5rem, 8vw, 9rem); 
+            text-align: center; 
+            color: var(--set-yellow); 
+            border-right: 2px solid var(--line-color); 
+        }
+        .games-count { 
+            font-size: clamp(3.5rem, 12vw, 13rem); 
+            text-align: center; 
+        }
         
         .point-container {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 5px;
         }
 
         .current-point {
-            font-size: 8vw;
+            font-size: clamp(2.5rem, 8vw, 9rem);
             background: rgba(0, 0, 0, 0.4);
             text-align: center;
-            border-radius: 20px;
+            border-radius: 15px;
             cursor: pointer;
-            min-width: 14vw;
+            min-width: 12vw;
             padding: 5px;
             transition: all 0.3s;
         }
@@ -130,10 +157,25 @@
 
         hr { border: 0; border-top: 4px solid var(--line-color); width: 100%; }
 
-        .controls { background: #111; padding: 12px; display: flex; justify-content: center; gap: 12px; }
+        .controls { 
+            background: #111; 
+            padding: 15px; 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            flex-wrap: wrap; /* Importante para que los botones no se escapen de la pantalla */
+        }
+        
         button, select {
-            padding: 10px 18px; font-size: 0.9rem; cursor: pointer; border-radius: 5px; border: none;
-            background: #444; color: white; font-weight: bold; text-transform: uppercase;
+            padding: 10px 15px; 
+            font-size: clamp(0.7rem, 0.9rem, 1.2rem); 
+            cursor: pointer; 
+            border-radius: 5px; 
+            border: none;
+            background: #444; 
+            color: white; 
+            font-weight: bold; 
+            text-transform: uppercase;
         }
 
         button:disabled { opacity: 0.2; cursor: not-allowed; }
@@ -143,28 +185,37 @@
 
         #overlay {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.95); padding: 50px; border-radius: 20px;
+            background: rgba(0,0,0,0.95); padding: 30px; border-radius: 20px;
             display: none; text-align: center; z-index: 100; border: 5px solid gold;
-            min-width: 50vw;
+            width: 80vw;
+            max-width: 500px;
         }
 
         .btn-overlay-start {
-            margin-top: 30px; background: #27ae60; padding: 20px 40px; font-size: 2rem;
+            margin-top: 20px; background: #27ae60; padding: 15px 30px; 
+            font-size: clamp(1.2rem, 2rem, 2.5rem);
             color: white; border: none; border-radius: 10px; cursor: pointer;
             font-family: 'Arial Black', sans-serif; display: none;
+        }
+
+        /* Ajuste específico para pantallas muy angostas */
+        @media (max-width: 600px) {
+            .team-row {
+                grid-template-columns: 0.3fr 2fr 0.7fr 0.7fr 1fr 0.3fr;
+            }
         }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h2 id="overlay-text" style="font-size: 3.5rem; color: gold; margin-bottom: 10px; white-space: pre-line;"></h2>
+        <h2 id="overlay-text" style="font-size: clamp(1.5rem, 2.5rem, 3.5rem); color: gold; margin-bottom: 10px; white-space: pre-line;"></h2>
         <button id="btn-overlay-start" class="btn-overlay-start" onclick="closeOverlayAndStart()">INICIAR PARTIDO</button>
     </div>
 
     <div class="scoreboard">
         <div class="header">
-            <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <div class="cancha-label" contenteditable="true">CANCHA 3</div>
                 <span id="match-time">00:00:00</span>
             </div>
