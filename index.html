@@ -23,7 +23,6 @@
             width: 100vw;
             font-family: 'Arial Black', sans-serif;
             color: white;
-            /* Cambiado para permitir scroll si el contenido desborda en móviles */
             overflow-x: hidden;
             overflow-y: auto;
         }
@@ -37,7 +36,7 @@
             padding: 2vh 5vw;
             border: 10px solid #333;
             box-sizing: border-box;
-            min-height: 85vh; /* Asegura que ocupe casi toda la pantalla */
+            min-height: 85vh;
         }
 
         .header {
@@ -85,11 +84,13 @@
 
         .team-row {
             display: grid;
-            /* Ajustado para que en pantallas pequeñas los nombres tengan más espacio */
-            grid-template-columns: 0.4fr 2.5fr 0.8fr 0.8fr 1.2fr 0.4fr;
+            grid-template-columns: 0.4fr 2.5fr 1.2fr 0.8fr 1.2fr 0.4fr;
             align-items: center;
             min-height: 25vh;
             gap: 10px;
+            transition: all 0.3s ease;
+            border-radius: 20px;
+            padding: 10px;
         }
 
         .ball-slot { display: flex; justify-content: center; }
@@ -118,6 +119,15 @@
             font-size: clamp(1.5rem, 4vw, 4.5rem);
             margin-left: 10px;
             filter: drop-shadow(0 0 10px gold);
+        }
+
+        .history-sets {
+            display: flex;
+            gap: 10px;
+            font-size: clamp(1.5rem, 4vw, 4rem);
+            color: rgba(255, 255, 255, 0.6);
+            justify-content: flex-end;
+            min-width: 100px;
         }
 
         .sets-count { 
@@ -149,6 +159,13 @@
             transition: all 0.3s;
         }
 
+        @keyframes teamFlash {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(223, 255, 0, 0.2); box-shadow: inset 0 0 50px rgba(223, 255, 0, 0.3); }
+            100% { background-color: transparent; }
+        }
+        .row-animation { animation: teamFlash 0.6s ease; }
+
         .gold-point {
             color: var(--gold) !important;
             box-shadow: 0 0 20px var(--gold);
@@ -158,51 +175,25 @@
         hr { border: 0; border-top: 4px solid var(--line-color); width: 100%; }
 
         .controls { 
-            background: #111; 
-            padding: 15px; 
-            display: flex; 
-            justify-content: center; 
-            gap: 10px; 
-            flex-wrap: wrap; /* Importante para que los botones no se escapen de la pantalla */
+            background: #111; padding: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
         }
         
         button, select {
-            padding: 10px 15px; 
-            font-size: clamp(0.7rem, 0.9rem, 1.2rem); 
-            cursor: pointer; 
-            border-radius: 5px; 
-            border: none;
-            background: #444; 
-            color: white; 
-            font-weight: bold; 
-            text-transform: uppercase;
+            padding: 10px 15px; font-size: clamp(0.7rem, 0.9rem, 1.2rem); cursor: pointer; border-radius: 5px; border: none;
+            background: #444; color: white; font-weight: bold; text-transform: uppercase;
         }
-
-        button:disabled { opacity: 0.2; cursor: not-allowed; }
-
+        button:disabled, select:disabled { opacity: 0.2; cursor: not-allowed; }
         .btn-coin { background: #f39c12; }
         .btn-reset { background: #c0392b; }
 
         #overlay {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.95); padding: 30px; border-radius: 20px;
-            display: none; text-align: center; z-index: 100; border: 5px solid gold;
-            width: 80vw;
-            max-width: 500px;
+            display: none; text-align: center; z-index: 100; border: 5px solid gold; width: 80vw; max-width: 500px;
         }
-
         .btn-overlay-start {
-            margin-top: 20px; background: #27ae60; padding: 15px 30px; 
-            font-size: clamp(1.2rem, 2rem, 2.5rem);
-            color: white; border: none; border-radius: 10px; cursor: pointer;
-            font-family: 'Arial Black', sans-serif; display: none;
-        }
-
-        /* Ajuste específico para pantallas muy angostas */
-        @media (max-width: 600px) {
-            .team-row {
-                grid-template-columns: 0.3fr 2fr 0.7fr 0.7fr 1fr 0.3fr;
-            }
+            margin-top: 20px; background: #27ae60; padding: 15px 30px; font-size: clamp(1.2rem, 2rem, 2.5rem);
+            color: white; border: none; border-radius: 10px; cursor: pointer; display: none;
         }
     </style>
 </head>
@@ -232,6 +223,7 @@
                 <span id="name-t1">EQUIPO 1</span>
                 <span class="winner-crown" id="crown-t1">👑</span>
             </div>
+            <div class="history-sets" id="history-t1"></div>
             <div class="sets-count" id="sets-t1">0</div>
             <div class="games-count" id="games-t1">0</div>
             <div class="point-container">
@@ -251,6 +243,7 @@
                 <span id="name-t2">EQUIPO 2</span>
                 <span class="winner-crown" id="crown-t2">👑</span>
             </div>
+            <div class="history-sets" id="history-t2"></div>
             <div class="sets-count" id="sets-t2">0</div>
             <div class="games-count" id="games-t2">0</div>
             <div class="point-container">
@@ -278,84 +271,125 @@
         <button id="btn-start" onclick="startTimer()" style="background: #27ae60;" disabled>Iniciar</button>
         <button onclick="pauseTimer()">Pausar</button>
         <button class="btn-reset" onclick="resetAll()">Reset</button>
-        <button onclick="document.documentElement.requestFullscreen()" style="background: #2980b9;">F11</button>
     </div>
 
     <script>
         let seconds = 0;
         let timerInterval = null;
         let gameFinished = false;
+        let isTieBreak = false;
         let points = { t1: 0, t2: 0 }; 
         let games = { t1: 0, t2: 0 };
         let sets = { t1: 0, t2: 0 };
-        const ptsMap = ["00", "15", "30", "40", "AV"];
+        let setHistory = { t1: [], t2: [] };
+        let undoStack = []; 
 
-        function checkValidation() {
-            const setVal = document.getElementById('set-mode').value;
-            const pointVal = document.getElementById('point-mode').value;
-            const btnCoin = document.getElementById('btn-coin');
-            const btnStart = document.getElementById('btn-start');
-            if (setVal && pointVal) {
-                btnCoin.disabled = false;
-                btnStart.disabled = false;
-            } else {
-                btnCoin.disabled = true;
-                btnStart.disabled = true;
-            }
+        const ptsMap = ["00", "15", "30", "40", "AV"];
+        let lastActionTime = 0;
+        const DEBOUNCE_DELAY = 1200; 
+
+        function pushToUndoStack() {
+            const state = {
+                points: { ...points },
+                games: { ...games },
+                sets: { ...sets },
+                setHistory: { t1: [...setHistory.t1], t2: [...setHistory.t2] },
+                isTieBreak,
+                gameFinished,
+                server: document.getElementById('ball-t1').classList.contains('active') ? 't1' : 't2'
+            };
+            undoStack.push(JSON.stringify(state));
+            if (undoStack.length > 20) undoStack.shift(); 
+        }
+
+        function triggerFlash(team) {
+            const row = document.getElementById('row-' + team);
+            row.classList.remove('row-animation');
+            void row.offsetWidth;
+            row.classList.add('row-animation');
         }
 
         function addPoint(team) {
             if (gameFinished) return;
-            const opponent = team === 't1' ? 't2' : 't1';
-            const isPuntoOro = document.getElementById('point-mode').value === 'oro';
+            if (!timerInterval) { alert("Inicie el partido primero"); return; }
+            const now = Date.now();
+            if (now - lastActionTime < DEBOUNCE_DELAY) return;
+            lastActionTime = now;
 
-            if (points[team] < 3) {
+            pushToUndoStack(); 
+            triggerFlash(team);
+
+            if (isTieBreak) {
                 points[team]++;
-            } else if (points[team] === 3) {
-                if (points[opponent] < 3) { updateGames(team); return; }
-                else if (points[opponent] === 3) {
-                    if (isPuntoOro) { updateGames(team); return; }
-                    else { points[team] = 4; }
-                } else if (points[opponent] === 4) {
-                    points[opponent] = 3;
-                }
-            } else if (points[team] === 4) {
-                updateGames(team); return;
+                const opponent = team === 't1' ? 't2' : 't1';
+                if (points[team] >= 7 && (points[team] - points[opponent] >= 2)) updateSets(team);
+            } else {
+                const opponent = team === 't1' ? 't2' : 't1';
+                const isPuntoOro = document.getElementById('point-mode').value === 'oro';
+                if (points[team] < 3) points[team]++;
+                else if (points[team] === 3) {
+                    if (points[opponent] < 3 || isPuntoOro) updateGames(team);
+                    else if (points[opponent] === 3) points[team] = 4;
+                    else if (points[opponent] === 4) points[opponent] = 3;
+                } else if (points[team] === 4) updateGames(team);
             }
             renderAll();
+            saveState();
         }
 
         function removePoint(team) {
-            if (gameFinished) return;
-            if (points[team] > 0) { points[team]--; renderAll(); }
+            if (gameFinished) gameFinished = false; 
+            const now = Date.now();
+            if (now - lastActionTime < DEBOUNCE_DELAY) return;
+            lastActionTime = now;
+
+            if (undoStack.length > 0) {
+                const lastState = JSON.parse(undoStack.pop());
+                points = lastState.points;
+                games = lastState.games;
+                sets = lastState.sets;
+                setHistory = lastState.setHistory;
+                isTieBreak = lastState.isTieBreak;
+                gameFinished = lastState.gameFinished;
+                setServer(lastState.server);
+                
+                document.getElementById('crown-t1').style.display = 'none';
+                document.getElementById('crown-t2').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+                
+                renderAll();
+                saveState();
+            }
         }
 
         function updateGames(team) {
             games[team]++;
             points.t1 = 0; points.t2 = 0;
-            if (games[team] >= 6) {
+            if (games.t1 === 6 && games.t2 === 6) {
+                isTieBreak = true;
+                showOverlay("¡TIE-BREAK!", true);
+            } else if ((games[team] >= 6 && Math.abs(games.t1 - games.t2) >= 2) || games[team] === 7) {
                 updateSets(team);
             } else {
                 toggleServer();
             }
-            renderAll();
         }
 
         function updateSets(team) {
+            setHistory.t1.push(games.t1);
+            setHistory.t2.push(games.t2);
             sets[team]++;
             games.t1 = 0; games.t2 = 0;
+            points.t1 = 0; points.t2 = 0;
+            isTieBreak = false;
             const target = parseInt(document.getElementById('set-mode').value);
-            
             if (sets[team] >= target) {
                 gameFinished = true;
                 pauseTimer();
-                renderAll();
                 document.getElementById('crown-' + team).style.display = 'inline-block';
-                const winnerName = document.getElementById('name-' + team).innerText;
-                showOverlay("¡FIN DEL JUEGO!\nGANADOR: " + winnerName, false, false);
+                showOverlay("FIN DEL JUEGO\nGANADOR: " + document.getElementById('name-' + team).innerText, false);
             } else {
-                const teamName = document.getElementById('name-' + team).innerText;
-                showOverlay("SET PARA " + teamName, true, false);
+                showOverlay("SET PARA " + document.getElementById('name-' + team).innerText, true);
                 toggleServer();
             }
         }
@@ -364,42 +398,73 @@
             const pt1 = document.getElementById('pt-t1');
             const pt2 = document.getElementById('pt-t2');
             const isPuntoOro = document.getElementById('point-mode').value === 'oro';
-            pt1.innerText = ptsMap[points.t1];
-            pt2.innerText = ptsMap[points.t2];
-            if (isPuntoOro && points.t1 === 3 && points.t2 === 3) {
-                pt1.classList.add('gold-point'); pt2.classList.add('gold-point');
-                pt1.innerText = "ORO"; pt2.innerText = "ORO";
-            } else {
+            if (isTieBreak) {
+                pt1.innerText = points.t1; pt2.innerText = points.t2;
                 pt1.classList.remove('gold-point'); pt2.classList.remove('gold-point');
+            } else {
+                pt1.innerText = ptsMap[points.t1]; pt2.innerText = ptsMap[points.t2];
+                if (isPuntoOro && points.t1 === 3 && points.t2 === 3) {
+                    pt1.innerText = "ORO"; pt2.innerText = "ORO";
+                    pt1.classList.add('gold-point'); pt2.classList.add('gold-point');
+                } else {
+                    pt1.classList.remove('gold-point'); pt2.classList.remove('gold-point');
+                }
             }
             document.getElementById('games-t1').innerText = games.t1;
             document.getElementById('games-t2').innerText = games.t2;
             document.getElementById('sets-t1').innerText = sets.t1;
             document.getElementById('sets-t2').innerText = sets.t2;
+            document.getElementById('history-t1').innerHTML = setHistory.t1.map(g => `<span>${g}</span>`).join('');
+            document.getElementById('history-t2').innerHTML = setHistory.t2.map(g => `<span>${g}</span>`).join('');
+            
+            // Bloquear controles si el timer está activo
+            toggleConfigInputs(!!timerInterval);
+        }
+
+        function toggleConfigInputs(isDisabled) {
+            document.getElementById('set-mode').disabled = isDisabled;
+            document.getElementById('point-mode').disabled = isDisabled;
+            document.getElementById('btn-coin').disabled = isDisabled || !document.getElementById('set-mode').value || !document.getElementById('point-mode').value;
+            document.getElementById('btn-start').disabled = isDisabled || !document.getElementById('set-mode').value || !document.getElementById('point-mode').value;
+        }
+
+        function toggleServer() {
+            const b1 = document.getElementById('ball-t1');
+            if(b1.classList.contains('active')) setServer('t2');
+            else setServer('t1');
         }
 
         function setServer(team) {
-            if (gameFinished) return;
             document.getElementById('ball-t1').classList.remove('active');
             document.getElementById('ball-t2').classList.remove('active');
             document.getElementById('ball-' + team).classList.add('active');
         }
 
-        function toggleServer() {
-            const b1 = document.getElementById('ball-t1');
-            const b2 = document.getElementById('ball-t2');
-            if(b1.classList.contains('active')) setServer('t2');
-            else if(b2.classList.contains('active')) setServer('t1');
+        function tossCoin() {
+            showOverlay("SORTEANDO...", false);
+            setTimeout(() => {
+                const win = Math.random() > 0.5 ? 't1' : 't2';
+                showOverlay("SACA: " + document.getElementById('name-' + win).innerText, false, true);
+                setServer(win);
+            }, 1500);
         }
 
-        function showOverlay(text, autoClose = true, showStartBtn = false) {
-            const overlay = document.getElementById('overlay');
-            const btn = document.getElementById('btn-overlay-start');
-            document.getElementById('overlay-text').innerText = text;
-            overlay.style.display = 'block';
-            btn.style.display = showStartBtn ? 'inline-block' : 'none';
-            if (autoClose) setTimeout(() => overlay.style.display = 'none', 3000);
-            if (gameFinished) overlay.onclick = () => overlay.style.display = 'none';
+        function checkValidation() {
+            const s = document.getElementById('set-mode').value;
+            const p = document.getElementById('point-mode').value;
+            // Solo habilitar si no ha empezado el partido
+            if(!timerInterval) {
+                document.getElementById('btn-coin').disabled = !(s && p);
+                document.getElementById('btn-start').disabled = !(s && p);
+            }
+        }
+
+        function showOverlay(t, auto, btn) {
+            const o = document.getElementById('overlay');
+            document.getElementById('overlay-text').innerText = t;
+            o.style.display = 'block';
+            document.getElementById('btn-overlay-start').style.display = btn ? 'inline-block' : 'none';
+            if (auto) setTimeout(() => o.style.display = 'none', 2500);
         }
 
         function closeOverlayAndStart() {
@@ -407,19 +472,8 @@
             startTimer();
         }
 
-        function tossCoin() {
-            if (gameFinished) return;
-            showOverlay("SORTEANDO...", false, false);
-            setTimeout(() => {
-                const win = Math.random() > 0.5 ? 't1' : 't2';
-                const name = document.getElementById('name-' + win).innerText;
-                showOverlay("SACA: " + name, false, true);
-                setServer(win);
-            }, 1500);
-        }
-
         function startTimer() {
-            if (timerInterval || gameFinished) return;
+            if (timerInterval) return;
             timerInterval = setInterval(() => {
                 seconds++;
                 let hrs = Math.floor(seconds / 3600).toString().padStart(2,'0');
@@ -427,34 +481,76 @@
                 let secs = (seconds % 60).toString().padStart(2,'0');
                 document.getElementById('match-time').innerText = `${hrs}:${mins}:${secs}`;
             }, 1000);
+            renderAll(); // Forzar bloqueo de inputs
+            saveState();
         }
 
-        function pauseTimer() { clearInterval(timerInterval); timerInterval = null; }
+        function pauseTimer() { 
+            clearInterval(timerInterval); 
+            timerInterval = null; 
+            renderAll(); // Liberar inputs si se desea (aunque lo lógico es mantener bloqueo, aquí se liberan al pausar según renderAll)
+        }
+
+        function saveState() {
+            localStorage.setItem('padelState', JSON.stringify({seconds, points, games, sets, setHistory, isTieBreak, gameFinished, undoStack}));
+        }
 
         function resetAll() {
-            if(!confirm("¿Resetear partido completo?")) return;
-            pauseTimer();
-            gameFinished = false;
-            seconds = 0;
-            points = { t1: 0, t2: 0 }; games = { t1: 0, t2: 0 }; sets = { t1: 0, t2: 0 };
-            document.getElementById('set-mode').selectedIndex = 0;
-            document.getElementById('point-mode').selectedIndex = 0;
-            checkValidation();
-            document.getElementById('match-time').innerText = "00:00:00";
-            document.getElementById('ball-t1').classList.remove('active');
-            document.getElementById('ball-t2').classList.remove('active');
-            document.getElementById('crown-t1').style.display = 'none';
-            document.getElementById('crown-t2').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
-            renderAll();
+            if(!confirm("¿Resetear partido?")) return;
+            localStorage.removeItem('padelState');
+            location.reload();
         }
 
-        function updateClock() {
+        async function escucharHA() {
+            try {
+                const res = await fetch(`${window.location.origin}/api/states/input_text.padel_comando`, {
+                    headers: {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI0ODViZDlhNTc3MjI0ZWVkYTUxMDA4Njk5NGY1NTczZiIsImlhdCI6MTc3ODU5MzY2MiwiZXhwIjoyMDkzOTUzNjYyfQ.HyNRR8huVct9qXtnvml-E1fVICIKW3qqWXGJ4Yi6wTw"}
+                });
+                const data = await res.json();
+                const cmd = data.state;
+                if (cmd !== "IDLE" && cmd !== "unknown") {
+                    if (!timerInterval && !gameFinished) {
+                        if (cmd === "ADD_T1") {
+                            const sel = document.getElementById('set-mode');
+                            sel.selectedIndex = sel.selectedIndex >= 2 ? 1 : sel.selectedIndex + 1;
+                            checkValidation();
+                        }
+                        if (cmd === "ADD_T2") {
+                            const sel = document.getElementById('point-mode');
+                            sel.selectedIndex = sel.selectedIndex >= 2 ? 1 : sel.selectedIndex + 1;
+                            checkValidation();
+                        }
+                        if (cmd === "SUB_T1") tossCoin();
+                        if (cmd === "SUB_T2") if(!document.getElementById('btn-start').disabled) closeOverlayAndStart();
+                    } else {
+                        if (cmd === "ADD_T1") addPoint('t1');
+                        if (cmd === "ADD_T2") addPoint('t2');
+                        if (cmd === "SUB_T1") removePoint('t1');
+                        if (cmd === "SUB_T2") removePoint('t2');
+                    }
+                    fetch(`${window.location.origin}/api/services/input_text/set_value`, {
+                        method: 'POST',
+                        headers: {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI0ODViZDlhNTc3MjI0ZWVkYTUxMDA4Njk5NGY1NTczZiIsImlhdCI6MTc3ODU5MzY2MiwiZXhwIjoyMDkzOTUzNjYyfQ.HyNRR8huVct9qXtnvml-E1fVICIKW3qqWXGJ4Yi6wTw"},
+                        body: JSON.stringify({entity_id: "input_text.padel_comando", value: "IDLE"})
+                    });
+                }
+            } catch(e) {}
+        }
+        setInterval(escucharHA, 500);
+
+        window.onload = () => {
+            const s = localStorage.getItem('padelState');
+            if(s) {
+                const d = JSON.parse(s);
+                Object.assign(window, d);
+                if(d.undoStack) undoStack = d.undoStack;
+                renderAll();
+            }
+        };
+        setInterval(() => {
             const now = new Date();
             document.getElementById('current-clock').innerText = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0') + " h";
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+        }, 1000);
     </script>
 </body>
 </html>
